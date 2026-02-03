@@ -71,7 +71,7 @@ export class BookingService {
         .select('*')
         .eq('booking_date', date)
         .eq('slot_type', slot)
-        .in('status', ['pending', 'approved'])
+        .in('status', ['pending', 'approved']) // Exclude cancelled and rejected
 
       if (arangamName) {
         query = query.eq('arangam_name', arangamName)
@@ -105,7 +105,35 @@ export class BookingService {
         return { available: false, error: result.error }
       }
 
-      return { available: (result.data?.length || 0) === 0 }
+      // Check for direct slot conflicts
+      const directConflict = (result.data?.length || 0) > 0
+      if (directConflict) {
+        return { available: false }
+      }
+
+      // Check for full-day conflicts
+      if (slot === 'full-day') {
+        // If booking full-day, check if forenoon or afternoon are booked
+        const forenoonResult = await this.getBookingsByDateAndSlot(date, 'forenoon', arangamName)
+        const afternoonResult = await this.getBookingsByDateAndSlot(date, 'afternoon', arangamName)
+        
+        const forenoonBooked = forenoonResult.success && (forenoonResult.data?.length || 0) > 0
+        const afternoonBooked = afternoonResult.success && (afternoonResult.data?.length || 0) > 0
+        
+        if (forenoonBooked || afternoonBooked) {
+          return { available: false }
+        }
+      } else if (slot === 'forenoon' || slot === 'afternoon') {
+        // If booking forenoon/afternoon, check if full-day is booked
+        const fullDayResult = await this.getBookingsByDateAndSlot(date, 'full-day', arangamName)
+        const fullDayBooked = fullDayResult.success && (fullDayResult.data?.length || 0) > 0
+        
+        if (fullDayBooked) {
+          return { available: false }
+        }
+      }
+
+      return { available: true }
     } catch (error) {
       console.error('Unexpected error:', error)
       return { available: true } // Default to available if there's an error
@@ -113,7 +141,7 @@ export class BookingService {
   }
 
   // Update booking status
-  static async updateBookingStatus(id: string, status: 'pending' | 'approved' | 'rejected'): Promise<{ success: boolean; error?: string }> {
+  static async updateBookingStatus(id: string, status: 'pending' | 'approved' | 'rejected' | 'cancelled'): Promise<{ success: boolean; error?: string }> {
     try {
       const { error } = await supabase
         .from('bookings')
@@ -122,6 +150,47 @@ export class BookingService {
 
       if (error) {
         console.error('Update booking status error:', error)
+        return { success: false, error: error.message }
+      }
+
+      return { success: true }
+    } catch (error) {
+      console.error('Unexpected error:', error)
+      return { success: false, error: 'An unexpected error occurred' }
+    }
+  }
+
+  // Cancel booking with reason
+  static async cancelBooking(id: string, reason: string): Promise<{ success: boolean; error?: string }> {
+    try {
+      // First get the current booking to preserve existing remarks
+      const { data: booking, error: fetchError } = await supabase
+        .from('bookings')
+        .select('remarks')
+        .eq('id', id)
+        .single()
+
+      if (fetchError) {
+        console.error('Fetch booking error:', fetchError)
+        return { success: false, error: fetchError.message }
+      }
+
+      // Update with cancelled status and append reason to remarks
+      const updatedRemarks = booking.remarks 
+        ? `${booking.remarks} | CANCELLED: ${reason}` 
+        : `CANCELLED: ${reason}`
+
+      const { error } = await supabase
+        .from('bookings')
+        .update({ 
+          status: 'cancelled', 
+          remarks: updatedRemarks,
+          updated_at: new Date().toISOString() 
+        })
+        .eq('id', id)
+
+      if (error) {
+        console.error('Cancel booking error:', error)
         return { success: false, error: error.message }
       }
 

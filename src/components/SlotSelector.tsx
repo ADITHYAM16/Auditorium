@@ -11,6 +11,7 @@ interface SlotSelectorProps {
   bookedSlots?: { date: string; slot: string }[];
   selectedArangam?: string | null;
   onArangamChange?: (arangam: string) => void;
+  onArangamSelect?: (arangam: string) => void; // New prop for triggering booking workflow
   showArangam?: boolean;
 }
 
@@ -46,6 +47,7 @@ const SlotSelector = ({
   bookedSlots = [],
   selectedArangam,
   onArangamChange,
+  onArangamSelect,
   showArangam = true,
 }: SlotSelectorProps) => {
   const [hoveredSlot, setHoveredSlot] = useState<string | null>(null);
@@ -63,22 +65,22 @@ const SlotSelector = ({
 
   const fetchBookedSlots = async () => {
     if (!selectedDate) return;
-    
+
     try {
       const dateStr = selectedDate.toISOString().split('T')[0];
       const arangamName = getArangamName(selectedArangam);
-      
+
       // Only fetch if we have a valid date
       const slots = ['full-day', 'forenoon', 'afternoon'];
       const bookedSlotsData: { date: string; slot: string; arangam?: string }[] = [];
-      
+
       for (const slot of slots) {
         const result = await BookingService.getBookingsByDateAndSlot(dateStr, slot, arangamName || undefined);
         if (result.success && result.data && result.data.length > 0) {
           bookedSlotsData.push({ date: dateStr, slot, arangam: arangamName || undefined });
         }
       }
-      
+
       setRealTimeBookedSlots(bookedSlotsData);
     } catch (error) {
       console.error('Error fetching booked slots:', error);
@@ -99,34 +101,64 @@ const SlotSelector = ({
     return names[id] || id;
   };
 
-  const isSlotBooked = (slotId: string) => {
+  const isSlotDirectlyBooked = (slotId: string) => {
     if (!selectedDate) return false;
-    
+
     const dateStr = selectedDate.toISOString().split('T')[0];
-    
+
     // Check legacy booked slots first
     const isLegacyBooked = bookedSlots.some(
       (booking) => booking.date === dateStr && booking.slot === slotId
     );
-    
+
     if (isLegacyBooked) return true;
-    
+
     // Check real-time booked slots
     if (showArangam && selectedArangam) {
       const arangamName = getArangamName(selectedArangam);
       return realTimeBookedSlots.some(
         (booking) => booking.date === dateStr && booking.slot === slotId && booking.arangam === arangamName
       );
-    }
-    
-    // For MG Auditorium (no arangam)
-    if (!showArangam) {
+    } else if (!showArangam) {
+      // For MG Auditorium (no arangam)
       return realTimeBookedSlots.some(
         (booking) => booking.date === dateStr && booking.slot === slotId
       );
     }
-    
+
     return false;
+  };
+
+  const isSlotConflicted = (slotId: string) => {
+    if (!selectedDate) return false;
+
+    const dateStr = selectedDate.toISOString().split('T')[0];
+    const arangamName = showArangam && selectedArangam ? getArangamName(selectedArangam) : null;
+
+    if (slotId === 'full-day') {
+      // Full-day is conflicted if forenoon OR afternoon is booked
+      const forenoonBooked = realTimeBookedSlots.some(
+        (booking) => booking.date === dateStr && booking.slot === 'forenoon' &&
+          (showArangam ? booking.arangam === arangamName : true)
+      );
+      const afternoonBooked = realTimeBookedSlots.some(
+        (booking) => booking.date === dateStr && booking.slot === 'afternoon' &&
+          (showArangam ? booking.arangam === arangamName : true)
+      );
+      return forenoonBooked || afternoonBooked;
+    } else if (slotId === 'forenoon' || slotId === 'afternoon') {
+      // Forenoon/Afternoon is conflicted if full-day is booked
+      return realTimeBookedSlots.some(
+        (booking) => booking.date === dateStr && booking.slot === 'full-day' &&
+          (showArangam ? booking.arangam === arangamName : true)
+      );
+    }
+
+    return false;
+  };
+
+  const isSlotBooked = (slotId: string) => {
+    return isSlotDirectlyBooked(slotId) || isSlotConflicted(slotId);
   };
 
   const isDateDisabled = (date: Date) => {
@@ -159,147 +191,149 @@ const SlotSelector = ({
               const arangamName = arangamNames[num as keyof typeof arangamNames];
 
               return (
-                <button
+                <div
                   key={arangamId}
-                  onClick={() => onArangamChange?.(arangamId)}
-                  onMouseEnter={() => setHoveredArangam(arangamId)}
-                  onMouseLeave={() => setHoveredArangam(null)}
-                  className={`
-                    relative p-4 rounded-lg border-2 transition-all duration-300 text-center flex flex-col items-center justify-center min-h-[80px] w-full
-                    ${isSelected
-                      ? "border-green-500 bg-green-50 shadow-lg scale-105"
-                      : "border-border bg-card hover:border-green-300 hover:shadow-md hover:scale-102"
-                    }
-                  `}
+                  className={`relative p-4 rounded-lg border-2 transition-all duration-300 text-center flex flex-col items-center justify-center min-h-[100px] w-full gap-2 ${isSelected
+                    ? "border-green-500 bg-green-50 shadow-lg"
+                    : "border-border bg-card hover:border-green-300 hover:shadow-md"
+                    }`}
                 >
-                  <div className={`
-                    text-base font-bold transition-colors duration-300
-                    ${isSelected ? "text-green-700" : "text-gray-600"}
-                  `}>
+                  <div className={`text-base font-bold transition-colors duration-300 ${isSelected ? "text-green-700" : "text-gray-600"
+                    }`}>
                     {arangamName}
                   </div>
-                  {isSelected && (
-                    <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
-                      <div className="w-2 h-2 bg-white rounded-full"></div>
-                    </div>
-                  )}
-                </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onArangamSelect?.(arangamId);
+                    }}
+                    className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-md transition-colors duration-200"
+                  >
+                    Select Arangam
+                  </button>
+                </div>
               );
             })}
           </div>
         </div>
       )}
 
-      {/* Calendar Section */}
-      <div className="bg-card p-6 rounded-lg hover:shadow-xl hover:scale-[1.02] active:bg-gray-100 transition-all duration-300 border-2 border-gray-300">
-        <h3 className="font-display text-xl font-semibold text-primary mb-4 flex items-center gap-2">
-          <Clock className="w-5 h-5" />
-          Select Date
-        </h3>
-        <div className="flex justify-center">
-          <Calendar
-            mode="single"
-            selected={selectedDate || undefined}
-            onSelect={onDateChange}
-            disabled={isDateDisabled}
-            className="rounded-lg border shadow-card pointer-events-auto"
-            classNames={{
-              day_selected: "bg-green-500 text-white hover:bg-green-600 hover:text-white focus:bg-green-600 focus:text-white !rounded-full w-9 h-9 flex items-center justify-center",
-              day_today: "bg-accent/20 text-accent-foreground font-bold !rounded-full",
-              day: "hover:bg-secondary transition-colors duration-200 !rounded-full w-9 h-9 flex items-center justify-center",
-            }}
-          />
-        </div>
-      </div>
+      {/* Calendar Section - Only shown for MG Auditorium */}
+      {!showArangam && (
+        <>
+          <div className="bg-card p-6 rounded-lg hover:shadow-xl hover:scale-[1.02] active:bg-gray-100 transition-all duration-300 border-2 border-gray-300">
+            <h3 className="font-display text-xl font-semibold text-primary mb-4 flex items-center gap-2">
+              <Clock className="w-5 h-5" />
+              Select Date
+            </h3>
+            <div className="flex justify-center">
+              <Calendar
+                mode="single"
+                selected={selectedDate || undefined}
+                onSelect={onDateChange}
+                disabled={isDateDisabled}
+                className="rounded-lg border shadow-card pointer-events-auto"
+                classNames={{
+                  day_selected: "bg-green-500 text-white hover:bg-green-600 hover:text-white focus:bg-green-600 focus:text-white !rounded-full w-9 h-9 flex items-center justify-center",
+                  day_today: "bg-accent/20 text-accent-foreground font-bold !rounded-full",
+                  day: "hover:bg-secondary transition-colors duration-200 !rounded-full w-9 h-9 flex items-center justify-center",
+                }}
+              />
+            </div>
+          </div>
 
-      {/* Time Slot Section */}
-      <div className="bg-card p-6 rounded-lg hover:shadow-xl hover:scale-[1.02] active:bg-gray-100 transition-all duration-300 border-2 border-gray-300">
-        <h3 className="font-display text-xl font-semibold text-primary mb-4 flex items-center gap-2">
-          <Sun className="w-5 h-5" />
-          Select Time Slot
-        </h3>
-        <div className="grid grid-cols-1 gap-4">
-          {timeSlots.map((slot) => {
-            const Icon = slot.icon;
-            const isBooked = isSlotBooked(slot.id);
-            const isSelected = selectedSlot === slot.id;
-            const isHovered = hoveredSlot === slot.id;
+          {/* Time Slot Section */}
+          <div className="bg-card p-6 rounded-lg hover:shadow-xl hover:scale-[1.02] active:bg-gray-100 transition-all duration-300 border-2 border-gray-300">
+            <h3 className="font-display text-xl font-semibold text-primary mb-4 flex items-center gap-2">
+              <Sun className="w-5 h-5" />
+              Select Time Slot
+            </h3>
+            <div className="grid grid-cols-1 gap-4">
+              {timeSlots.map((slot) => {
+                const Icon = slot.icon;
+                const isDirectlyBooked = isSlotDirectlyBooked(slot.id);
+                const isConflicted = isSlotConflicted(slot.id);
+                const isDisabled = isDirectlyBooked || isConflicted;
+                const isSelected = selectedSlot === slot.id;
+                const isHovered = hoveredSlot === slot.id;
 
-            return (
-              <button
-                key={slot.id}
-                onClick={() => !isBooked && onSlotChange(slot.id)}
-                onMouseEnter={() => setHoveredSlot(slot.id)}
-                onMouseLeave={() => setHoveredSlot(null)}
-                disabled={isBooked}
-                className={`
-                  relative p-5 rounded-xl border-2 transition-all duration-300
-                  ${isBooked
-                    ? "border-destructive/30 bg-destructive/5 cursor-not-allowed opacity-60"
-                    : isSelected
-                      ? "border-accent bg-accent/10 shadow-accent scale-[1.02]"
-                      : "border-border bg-card hover:border-primary hover:shadow-card-hover hover:scale-[1.01]"
-                  }
-                `}
-              >
-                {/* Background Gradient */}
-                <div
-                  className={`
-                    absolute inset-0 rounded-xl opacity-0 transition-opacity duration-300
-                    bg-gradient-to-r ${slot.color}
-                    ${(isHovered || isSelected) && !isBooked ? "opacity-10" : ""}
-                  `}
-                />
+                return (
+                  <button
+                    key={slot.id}
+                    onClick={() => !isDisabled && onSlotChange(slot.id)}
+                    onMouseEnter={() => setHoveredSlot(slot.id)}
+                    onMouseLeave={() => setHoveredSlot(null)}
+                    disabled={isDisabled}
+                    className={`
+                      relative p-5 rounded-xl border-2 transition-all duration-300
+                      ${isDisabled
+                        ? "border-gray-300 bg-gray-100 cursor-not-allowed opacity-60"
+                        : isSelected
+                          ? "border-accent bg-accent/10 shadow-accent scale-[1.02]"
+                          : "border-border bg-card hover:border-primary hover:shadow-card-hover hover:scale-[1.01]"
+                      }
+                    `}
+                  >
+                    {/* Background Gradient */}
+                    <div
+                      className={`
+                        absolute inset-0 rounded-xl opacity-0 transition-opacity duration-300
+                        bg-gradient-to-r ${slot.color}
+                        ${(isHovered || isSelected) && !isDisabled ? "opacity-10" : ""}
+                      `}
+                    />
 
-                <div className="relative flex items-center gap-4">
-                  <div className={`
-                    p-3 rounded-full transition-all duration-300
-                    ${isSelected
-                      ? "bg-accent text-accent-foreground shadow-accent"
-                      : isBooked
-                        ? "bg-destructive/20 text-destructive"
-                        : "bg-primary/10 text-primary"
-                    }
-                  `}>
-                    <Icon className="w-6 h-6" />
-                  </div>
-                  <div className="flex-1 text-left">
-                    <h4 className={`font-semibold text-lg ${isSelected ? "text-accent" : "text-foreground"}`}>
-                      {slot.name}
-                    </h4>
-                  </div>
-                  {isBooked && (
-                    <span className="px-3 py-1 bg-destructive/20 text-destructive text-xs font-medium rounded-full">
-                      Booked
-                    </span>
-                  )}
-                  {isSelected && !isBooked && (
-                    <span className="px-3 py-1 bg-accent text-accent-foreground text-xs font-medium rounded-full animate-pulse-glow">
-                      Selected
-                    </span>
-                  )}
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      </div>
+                    <div className="relative flex items-center gap-4">
+                      <div className={`
+                        p-3 rounded-full transition-all duration-300
+                        ${isSelected
+                          ? "bg-accent text-accent-foreground shadow-accent"
+                          : isDisabled
+                            ? "bg-gray-200 text-gray-400"
+                            : "bg-primary/10 text-primary"
+                        }
+                      `}>
+                        <Icon className="w-6 h-6" />
+                      </div>
+                      <div className="flex-1 text-left">
+                        <h4 className={`font-semibold text-lg ${isSelected ? "text-accent" : isDisabled ? "text-gray-400" : "text-foreground"}`}>
+                          {slot.name}
+                        </h4>
+                      </div>
+                      {isDirectlyBooked && (
+                        <span className="px-3 py-1 bg-destructive/20 text-destructive text-xs font-medium rounded-full">
+                          Booked
+                        </span>
+                      )}
+                      {isSelected && !isDisabled && (
+                        <span className="px-3 py-1 bg-accent text-accent-foreground text-xs font-medium rounded-full animate-pulse-glow">
+                          Selected
+                        </span>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
-      {/* Legend */}
-      <div className="flex flex-wrap gap-4 justify-center text-sm">
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded border-2 border-border bg-card"></div>
-          <span className="text-muted-foreground">Available</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded border-2 border-accent bg-accent/20"></div>
-          <span className="text-muted-foreground">Selected</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-4 h-4 rounded border-2 border-destructive/30 bg-destructive/10"></div>
-          <span className="text-muted-foreground">Booked</span>
-        </div>
-      </div>
+          {/* Legend */}
+          <div className="flex flex-wrap gap-4 justify-center text-sm">
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded border-2 border-border bg-card"></div>
+              <span className="text-muted-foreground">Available</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded border-2 border-accent bg-accent/20"></div>
+              <span className="text-muted-foreground">Selected</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 rounded border-2 border-destructive/30 bg-destructive/10"></div>
+              <span className="text-muted-foreground">Booked</span>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 };

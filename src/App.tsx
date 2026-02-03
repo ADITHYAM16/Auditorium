@@ -8,6 +8,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import DatabaseSetup from "@/components/DatabaseSetup";
 import Index from "./pages/Index";
+import CancelBooking from "./pages/CancelBooking";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -42,6 +43,11 @@ const App = () => {
               <Route path="/" element={
                 <ProtectedRoute>
                   <Index onShowDatabaseSetup={() => setShowDatabaseSetup(true)} />
+                </ProtectedRoute>
+              } />
+              <Route path="/cancel-booking/:bookingId" element={
+                <ProtectedRoute>
+                  <CancelBooking />
                 </ProtectedRoute>
               } />
               <Route path="*" element={<NotFound />} />

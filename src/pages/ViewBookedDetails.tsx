@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Calendar, Clock, User, Phone, Building, FileText, Mail, Users, ArrowLeft, Badge, CheckCircle, XCircle, AlertCircle, Download } from 'lucide-react'
+import { Calendar, Clock, User, Phone, Building, FileText, Mail, Users, ArrowLeft, Badge, CheckCircle, XCircle, AlertCircle, Download, AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge as BadgeComponent } from '@/components/ui/badge'
@@ -7,6 +7,7 @@ import { BookingService } from '@/services/bookingService'
 import { BookingRecord } from '@/lib/supabase'
 import { toast } from '@/hooks/use-toast'
 import jsPDF from 'jspdf'
+import { supabase } from '@/lib/supabase'
 
 interface ViewBookedDetailsProps {
   onBack: () => void
@@ -23,7 +24,7 @@ const ViewBookedDetails = ({ onBack }: ViewBookedDetailsProps) => {
   const fetchBookings = async () => {
     setLoading(true)
     const result = await BookingService.getAllBookings()
-    
+
     if (result.success && result.data) {
       setBookings(result.data)
     } else {
@@ -53,6 +54,8 @@ const ViewBookedDetails = ({ onBack }: ViewBookedDetailsProps) => {
         return 'bg-green-100 text-green-800 border-green-200'
       case 'rejected':
         return 'bg-red-100 text-red-800 border-red-200'
+      case 'cancelled':
+        return 'bg-gray-100 text-gray-800 border-gray-200'
       default:
         return 'bg-yellow-100 text-yellow-800 border-yellow-200'
     }
@@ -79,26 +82,26 @@ const ViewBookedDetails = ({ onBack }: ViewBookedDetailsProps) => {
 
   const generatePDF = (booking: BookingRecord) => {
     const doc = new jsPDF();
-    
+
     // Header
     doc.setFontSize(18);
     doc.setFont('helvetica', 'bold');
     doc.text('Mahendra Engineering College (Autonomous)', 105, 20, { align: 'center' });
-    
+
     doc.setFontSize(14);
     doc.text('BOOKING CONFIRMATION', 105, 35, { align: 'center' });
-    
+
     // Line under header
     doc.line(20, 40, 190, 40);
-    
+
     let yPos = 55;
-    
+
     // Event Details
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
     doc.text('Event Details:', 20, yPos);
     yPos += 10;
-    
+
     doc.setFont('helvetica', 'normal');
     doc.text(`Event Name: ${booking.event_name}`, 25, yPos);
     yPos += 7;
@@ -113,12 +116,12 @@ const ViewBookedDetails = ({ onBack }: ViewBookedDetailsProps) => {
       yPos += 7;
     }
     yPos += 5;
-    
+
     // Booking Details
     doc.setFont('helvetica', 'bold');
     doc.text('Booking Details:', 20, yPos);
     yPos += 10;
-    
+
     doc.setFont('helvetica', 'normal');
     doc.text(`Date: ${formatDate(booking.booking_date)}`, 25, yPos);
     yPos += 7;
@@ -126,12 +129,12 @@ const ViewBookedDetails = ({ onBack }: ViewBookedDetailsProps) => {
     yPos += 7;
     doc.text(`Booked On: ${formatDateTime(booking.created_at || '')}`, 25, yPos);
     yPos += 12;
-    
+
     // Coordinator Details
     doc.setFont('helvetica', 'bold');
     doc.text('Coordinator Details:', 20, yPos);
     yPos += 10;
-    
+
     doc.setFont('helvetica', 'normal');
     doc.text(`Name: ${booking.coordinator_name}`, 25, yPos);
     yPos += 7;
@@ -139,28 +142,28 @@ const ViewBookedDetails = ({ onBack }: ViewBookedDetailsProps) => {
     yPos += 7;
     doc.text(`Phone: ${booking.contact_number}`, 25, yPos);
     yPos += 12;
-    
+
     // Remarks
     if (booking.remarks) {
       doc.setFont('helvetica', 'bold');
       doc.text('Remarks:', 20, yPos);
       yPos += 10;
-      
+
       doc.setFont('helvetica', 'normal');
       const splitRemarks = doc.splitTextToSize(booking.remarks, 160);
       doc.text(splitRemarks, 25, yPos);
       yPos += splitRemarks.length * 7 + 10;
     }
-    
+
     // Footer
     doc.setFontSize(10);
     doc.setFont('helvetica', 'italic');
     doc.text('Auditorium Booking System', 105, 280, { align: 'center' });
-    
+
     // Save the PDF
     const fileName = `booking-${booking.event_name.replace(/\s+/g, '-')}-${booking.booking_date}.pdf`;
     doc.save(fileName);
-    
+
     toast({
       title: "PDF Downloaded",
       description: "Booking details have been downloaded as PDF successfully.",
@@ -182,18 +185,18 @@ const ViewBookedDetails = ({ onBack }: ViewBookedDetailsProps) => {
     <div className="min-h-screen bg-background">
       <div className="py-8 px-4">
         <div className="max-w-7xl mx-auto">
-          <div className="flex items-center gap-4 mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-8">
             <Button
               onClick={onBack}
               variant="outline"
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 w-fit"
             >
               <ArrowLeft className="w-4 h-4" />
-              Back to Booking
+              Back
             </Button>
-            <div>
-              <h1 className="text-3xl font-bold text-primary">Booked Event Details</h1>
-              <p className="text-muted-foreground">View all auditorium bookings and their status</p>
+            <div className="bg-green-800 text-white p-4 rounded-lg text-center">
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold">Booked Event Details</h1>
+              <p className="text-sm sm:text-base text-gray-200">View all auditorium bookings and their status</p>
             </div>
           </div>
 
@@ -208,7 +211,8 @@ const ViewBookedDetails = ({ onBack }: ViewBookedDetailsProps) => {
           ) : (
             <div className="grid gap-6">
               {bookings.map((booking) => (
-                <Card key={booking.id} className="hover:shadow-lg transition-shadow">
+                <Card key={booking.id} className={`hover:shadow-lg transition-shadow ${booking.status === 'cancelled' ? 'bg-red-50 border-red-200' : ''
+                  }`}>
                   <CardHeader>
                     <div className="flex justify-between items-start">
                       <div>
@@ -217,6 +221,22 @@ const ViewBookedDetails = ({ onBack }: ViewBookedDetailsProps) => {
                           {booking.event_name}
                         </CardTitle>
                         <p className="text-muted-foreground mt-1">{booking.event_type}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <BadgeComponent className={getStatusColor(booking.status || 'pending')}>
+                          {booking.status || 'pending'}
+                        </BadgeComponent>
+                        {(booking.status !== 'cancelled' && booking.status !== 'rejected') && (
+                          <Button
+                            onClick={() => window.location.href = `/cancel-booking/${booking.id}`}
+                            size="sm"
+                            variant="destructive"
+                            className="flex items-center gap-1"
+                          >
+                            <AlertTriangle className="w-3 h-3" />
+                            Cancel
+                          </Button>
+                        )}
                       </div>
                     </div>
                   </CardHeader>
@@ -321,7 +341,7 @@ const ViewBookedDetails = ({ onBack }: ViewBookedDetailsProps) => {
                         </p>
                       </div>
                     )}
-                    
+
                     <div className="mt-4 flex justify-end">
                       <Button
                         onClick={() => generatePDF(booking)}

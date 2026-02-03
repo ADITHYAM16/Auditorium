@@ -1,13 +1,17 @@
 import { useState } from "react";
-import { Calendar, Users, Clock, Building2, CheckCircle2, Shield, Eye } from "lucide-react";
+import { Calendar, Users, Clock, Building2, CheckCircle2, Shield, Eye, Download } from "lucide-react";
+import * as XLSX from 'xlsx';
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { Button } from "@/components/ui/button";
 import Header from "@/components/Header";
 import SlotSelector from "@/components/SlotSelector";
 import BookingForm, { BookingData } from "@/components/BookingForm";
+import BookingWorkflowDialog from "@/components/BookingWorkflowDialog";
 import FeatureCard from "@/components/FeatureCard";
 import ViewBookedDetails from "@/pages/ViewBookedDetails";
 import mecLogo from "@/assets/mec-logo.png";
+import { BookingService } from "@/services/bookingService";
+import { toast } from "@/hooks/use-toast";
 
 interface IndexProps {
   onShowDatabaseSetup?: () => void;
@@ -21,6 +25,11 @@ const Index = ({ onShowDatabaseSetup }: IndexProps = {}) => {
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [selectedArangam, setSelectedArangam] = useState<string | null>(null);
   const [bookings, setBookings] = useState<BookingData[]>([]);
+
+  // Workflow dialog state
+  const [workflowDialogOpen, setWorkflowDialogOpen] = useState(false);
+  const [workflowArangam, setWorkflowArangam] = useState<string | null>(null);
+  const [isMGWorkflow, setIsMGWorkflow] = useState(false);
 
   // Mock booked slots for demonstration
   const bookedSlots: { date: string; slot: string }[] = [];
@@ -36,6 +45,100 @@ const Index = ({ onShowDatabaseSetup }: IndexProps = {}) => {
     setBookings([...bookings, data]);
     setSelectedDate(null);
     setSelectedSlot(null);
+  };
+
+  const handleArangamSelect = (arangamId: string) => {
+    setWorkflowArangam(arangamId);
+    setIsMGWorkflow(false);
+    setWorkflowDialogOpen(true);
+  };
+
+  const handleMGAuditoriumClick = () => {
+    setWorkflowArangam(null);
+    setIsMGWorkflow(true);
+    setWorkflowDialogOpen(true);
+  };
+
+  const handleWorkflowComplete = (data: BookingData) => {
+    setBookings([...bookings, data]);
+  };
+
+  const downloadAllBookings = async () => {
+    try {
+      const result = await BookingService.getAllBookings();
+
+      if (!result.success || !result.data || result.data.length === 0) {
+        toast({
+          title: "No Data",
+          description: "No booking records found to download.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Format data for Excel
+      const excelData = result.data.map((booking) => ({
+        'Booking ID': booking.id,
+        'Event Name': booking.event_name,
+        'Event Type': booking.event_type,
+        'Department': booking.department,
+        'Year': booking.year,
+        'Arangam': booking.arangam_name || 'MG Auditorium',
+        'Booking Date': new Date(booking.booking_date).toLocaleDateString('en-IN'),
+        'Time Slot': booking.slot_type,
+        'Coordinator Name': booking.coordinator_name,
+        'Coordinator Email': booking.coordinator_email,
+        'Contact Number': booking.contact_number,
+        'Remarks': booking.remarks || '',
+        'Status': booking.status || 'pending',
+        'Booked On': new Date(booking.created_at || '').toLocaleString('en-IN')
+      }));
+
+      // Create worksheet
+      const ws = XLSX.utils.json_to_sheet(excelData);
+
+      // Set column widths
+      const colWidths = [
+        { wch: 10 },  // Booking ID
+        { wch: 25 },  // Event Name
+        { wch: 20 },  // Event Type
+        { wch: 30 },  // Department
+        { wch: 12 },  // Year
+        { wch: 25 },  // Arangam
+        { wch: 15 },  // Booking Date
+        { wch: 15 },  // Time Slot
+        { wch: 25 },  // Coordinator Name
+        { wch: 30 },  // Coordinator Email
+        { wch: 15 },  // Contact Number
+        { wch: 40 },  // Remarks
+        { wch: 12 },  // Status
+        { wch: 20 },  // Booked On
+      ];
+      ws['!cols'] = colWidths;
+
+      // Create workbook
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Bookings');
+
+      // Generate filename with current date
+      const today = new Date().toISOString().split('T')[0];
+      const filename = `Auditorium_Bookings_${today}.xlsx`;
+
+      // Download file
+      XLSX.writeFile(wb, filename);
+
+      toast({
+        title: "Download Successful",
+        description: `${result.data.length} booking(s) downloaded as ${filename}`,
+      });
+    } catch (error) {
+      console.error('Error downloading bookings:', error);
+      toast({
+        title: "Download Failed",
+        description: "Failed to download booking data. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const features = [
@@ -158,16 +261,16 @@ const Index = ({ onShowDatabaseSetup }: IndexProps = {}) => {
           {/* MG AUDITORIUM Display */}
           <div className="flex justify-center">
             <button
-              onClick={() => setShowMGBookingPage(true)}
-              className="group relative px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-base font-bold shadow-md hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 active:translate-y-0 border-2 border-blue-500 hover:border-blue-300"
+              onClick={handleMGAuditoriumClick}
+              className="group relative px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-base font-bold shadow-md hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 active:translate-y-0"
             >
               {/* Ripple effect background */}
               <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 group-active:opacity-20 transition-opacity duration-200 rounded-lg"></div>
-              
+
               {/* Side accent bars */}
               <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-yellow-400 rounded-r-full transform scale-y-0 group-hover:scale-y-100 transition-transform duration-300"></div>
               <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-yellow-400 rounded-l-full transform scale-y-0 group-hover:scale-y-100 transition-transform duration-300"></div>
-              
+
               <span className="relative z-10">
                 BOOK MG AUDITORIUM
               </span>
@@ -179,60 +282,67 @@ const Index = ({ onShowDatabaseSetup }: IndexProps = {}) => {
       {/* Main Booking Section */}
       <section className="py-12 px-4 md:px-8">
         <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Left Side - Slot Selector */}
-            <div className="animate-slide-in-up" style={{ animationDelay: "100ms" }}>
-              <SlotSelector
-                selectedDate={selectedDate}
-                onDateChange={(date) => setSelectedDate(date || null)}
-                selectedSlot={selectedSlot}
-                onSlotChange={setSelectedSlot}
-                selectedArangam={selectedArangam}
-                onArangamChange={setSelectedArangam}
-                bookedSlots={bookedSlots}
-              />
-            </div>
+          {/* Arangam Selection */}
+          <div className="animate-slide-in-up mb-8">
+            <SlotSelector
+              selectedDate={selectedDate}
+              onDateChange={(date) => setSelectedDate(date || null)}
+              selectedSlot={selectedSlot}
+              onSlotChange={setSelectedSlot}
+              selectedArangam={selectedArangam}
+              onArangamChange={setSelectedArangam}
+              onArangamSelect={handleArangamSelect}
+              bookedSlots={bookedSlots}
+            />
+          </div>
 
-            {/* Right Side - Booking Form */}
-            <div className="animate-slide-in-up space-y-6">
-              <div className="bg-card p-6 lg:p-8 rounded-lg hover:shadow-xl hover:scale-[1.02] transition-all duration-300 border-2 border-gray-300">
-                <h3 className="font-display text-2xl font-bold text-primary mb-2 flex items-center gap-3">
-                  <Building2 className="w-6 h-6" />
-                  Booking Details
-                </h3>
-                <div className="w-16 h-1 bg-accent rounded-full mb-6" />
+          {/* Action Buttons */}
+          <div className="grid grid-cols-2 gap-4 max-w-2xl mx-auto px-4">
+            <button
+              onClick={() => setShowViewBookedDetails(true)}
+              className="group relative px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-base font-bold shadow-md hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 active:translate-y-0 border-2 border-blue-500 hover:border-blue-300"
+            >
+              {/* Ripple effect background */}
+              <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 group-active:opacity-20 transition-opacity duration-200 rounded-lg"></div>
 
-                <BookingForm
-                  selectedDate={selectedDate}
-                  selectedSlot={selectedSlot}
-                  selectedArangam={selectedArangam}
-                  onSubmit={handleBookingSubmit}
-                />
-              </div>
-              
-              {/* View Booked Details Button */}
-              <div className="flex justify-center">
-                <button
-                  onClick={() => setShowViewBookedDetails(true)}
-                  className="group relative px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-base font-bold shadow-md hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 active:translate-y-0 border-2 border-blue-500 hover:border-blue-300"
-                >
-                  {/* Ripple effect background */}
-                  <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 group-active:opacity-20 transition-opacity duration-200 rounded-lg"></div>
-                  
-                  {/* Side accent bars */}
-                  <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-yellow-400 rounded-r-full transform scale-y-0 group-hover:scale-y-100 transition-transform duration-300"></div>
-                  <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-yellow-400 rounded-l-full transform scale-y-0 group-hover:scale-y-100 transition-transform duration-300"></div>
-                  
-                  <span className="relative z-10 flex items-center gap-2">
-                    <Eye className="w-5 h-5" />
-                    View Booked Details
-                  </span>
-                </button>
-              </div>
-            </div>
+              {/* Side accent bars */}
+              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-yellow-400 rounded-r-full transform scale-y-0 group-hover:scale-y-100 transition-transform duration-300"></div>
+              <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-yellow-400 rounded-l-full transform scale-y-0 group-hover:scale-y-100 transition-transform duration-300"></div>
+
+              <span className="relative z-10 flex items-center gap-2">
+                <Eye className="w-5 h-5" />
+                Booked Details
+              </span>
+            </button>
+
+            <button
+              onClick={downloadAllBookings}
+              className="group relative px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-lg text-base font-bold shadow-md hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 active:translate-y-0 border-2 border-green-500 hover:border-green-300"
+            >
+              {/* Ripple effect background */}
+              <div className="absolute inset-0 bg-white opacity-0 group-hover:opacity-10 group-active:opacity-20 transition-opacity duration-200 rounded-lg"></div>
+
+              {/* Side accent bars */}
+              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-yellow-400 rounded-r-full transform scale-y-0 group-hover:scale-y-100 transition-transform duration-300"></div>
+              <div className="absolute right-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-yellow-400 rounded-l-full transform scale-y-0 group-hover:scale-y-100 transition-transform duration-300"></div>
+
+              <span className="relative z-10 flex items-center gap-2">
+                <Download className="w-5 h-5" />
+                Download
+              </span>
+            </button>
           </div>
         </div>
       </section>
+
+      {/* Booking Workflow Dialog */}
+      <BookingWorkflowDialog
+        open={workflowDialogOpen}
+        onOpenChange={setWorkflowDialogOpen}
+        selectedArangam={workflowArangam}
+        isMGAuditorium={isMGWorkflow}
+        onBookingComplete={handleWorkflowComplete}
+      />
 
       {/* Footer */}
       <footer className="bg-green-800 text-white py-8 px-4 md:px-8 border-4 border-orange-500 hover:border-orange-600 transition-colors duration-300">

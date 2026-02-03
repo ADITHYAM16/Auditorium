@@ -18,7 +18,7 @@ export interface BookingRecord {
   booking_date: string
   slot_type: string
   arangam_name?: string
-  status: 'pending' | 'approved' | 'rejected'
+  status: 'pending' | 'approved' | 'rejected' | 'cancelled'
   created_at?: string
   updated_at?: string
 }
