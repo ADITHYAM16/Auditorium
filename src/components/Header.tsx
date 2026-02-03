@@ -23,19 +23,19 @@ const Header = ({ logoSrc }: HeaderProps) => {
               <img
                 src={logoSrc || templeLogo}
                 alt="Mahendra Engineering College"
-                className="w-16 h-16 sm:w-20 sm:h-20 md:w-32 md:h-32 object-contain"
+                className="w-12 h-12 sm:w-16 sm:h-16 md:w-20 md:h-20 lg:w-32 lg:h-32 object-contain"
               />
             </div>
             <div className="text-center">
-              <h1 className="font-display text-sm sm:text-lg md:text-2xl lg:text-3xl font-bold tracking-wide leading-tight uppercase whitespace-nowrap">
+              <h1 className="font-display text-xs sm:text-sm md:text-lg lg:text-2xl xl:text-3xl font-bold tracking-wide leading-tight uppercase">
                 Mahendra Engineering College
-                <span className="block text-[10px] sm:text-xs md:text-sm lg:text-base font-medium mt-0.5 opacity-90">
+                <span className="block text-[8px] sm:text-[10px] md:text-xs lg:text-sm xl:text-base font-medium mt-0.5 opacity-90">
                   (Autonomous)
                 </span>
               </h1>
-              <div className="text-[8px] sm:text-[10px] md:text-xs lg:text-sm text-white/90 mt-1 max-w-4xl mx-auto leading-tight">
+              <div className="text-[6px] sm:text-[8px] md:text-[10px] lg:text-xs xl:text-sm text-white/90 mt-1 max-w-4xl mx-auto leading-tight">
                 <p>Autonomous Institution | Approved by AICTE | Recognized U/S 12(B) & 2(F) of UGC ACT 1956</p>
-                <p>Affiliated to Anna University, Chennai | NAAC Accredited with A++ Grade & NBA Tier – 1 (WA) UG: CSE, ECE, EEE</p>
+                <p>Affiliated to Anna University, Chennai | NAAC Accredited with A++ Grade & NBA Tier – 1 UG: CSE, ECE, EEE</p>
               </div>
             </div>
           </div>

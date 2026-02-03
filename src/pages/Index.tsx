@@ -217,17 +217,17 @@ const Index = ({ onShowDatabaseSetup }: IndexProps = {}) => {
         <footer className="bg-green-800 text-white py-6 px-4 mt-8">
           <div className="max-w-7xl mx-auto text-center">
             <h4 className="font-bold text-lg mb-2">Contact Details</h4>
-            <div className="grid grid-cols-3 gap-1 md:gap-4 text-[10px] md:text-sm">
-              <div>
-                <p className="font-semibold">Phone</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-sm md:text-base">
+              <div className="bg-green-700 p-3 rounded-lg">
+                <p className="font-semibold mb-1">Phone</p>
                 <p>+91 12345 67890</p>
               </div>
-              <div>
-                <p className="font-semibold">Email</p>
+              <div className="bg-green-700 p-3 rounded-lg">
+                <p className="font-semibold mb-1">Email</p>
                 <p className="break-all">auditorium@mahendra.info</p>
               </div>
-              <div>
-                <p className="font-semibold">Office Hours</p>
+              <div className="bg-green-700 p-3 rounded-lg sm:col-span-2 lg:col-span-1">
+                <p className="font-semibold mb-1">Office Hours</p>
                 <p>Mon - Fri: 9:00 AM - 5:00 PM</p>
               </div>
             </div>
@@ -249,11 +249,11 @@ const Index = ({ onShowDatabaseSetup }: IndexProps = {}) => {
         <div className="max-w-7xl mx-auto relative">
           <div className="text-center mb-12 animate-fade-in">
             <h2 className="font-display text-3xl md:text-4xl lg:text-5xl font-bold text-primary mb-4">
-              <span className="underline-animate">Welcome to Auditorium booking Portal</span>
+              <span className="underline-animate">Welcome to Arangam booking Portal</span>
             </h2>
             <div className="w-24 h-1 bg-accent mx-auto rounded-full mb-4" />
             <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-              Reserve the college auditorium for your department events, seminars,
+              Reserve the college arangam for your department events, seminars,
               workshops, and cultural programs with just a few clicks.
             </p>
           </div>
@@ -299,7 +299,7 @@ const Index = ({ onShowDatabaseSetup }: IndexProps = {}) => {
           {/* Action Buttons */}
           <div className="grid grid-cols-2 gap-4 max-w-2xl mx-auto px-4">
             <button
-              onClick={() => setShowViewBookedDetails(true)}
+              onClick={() => window.location.href = '/view-bookings'}
               className="group relative px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-base font-bold shadow-md hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-1 active:translate-y-0 border-2 border-blue-500 hover:border-blue-300"
             >
               {/* Ripple effect background */}
@@ -348,25 +348,28 @@ const Index = ({ onShowDatabaseSetup }: IndexProps = {}) => {
       <footer className="bg-green-800 text-white py-8 px-4 md:px-8 border-4 border-orange-500 hover:border-orange-600 transition-colors duration-300">
         <div className="max-w-7xl mx-auto text-center">
           <h4 className="font-bold text-lg mb-4">Contact Details</h4>
-          <div className="grid grid-cols-3 gap-1 md:gap-4 text-[10px] md:text-sm mb-6">
-            <div>
-              <p className="font-semibold">Phone</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 text-sm md:text-base mb-6">
+            <div className="bg-green-700 p-4 rounded-lg">
+              <p className="font-semibold mb-2">Phone</p>
               <p>+91 12345 67890</p>
             </div>
-            <div>
-              <p className="font-semibold">Email</p>
-              <p className="break-all">auditorium@mahendra.info</p>
+            <div className="bg-green-700 p-4 rounded-lg">
+              <p className="font-semibold mb-2">Email</p>
+              <p className="break-all">arangam@mahendra.info</p>
             </div>
-            <div>
-              <p className="font-semibold">Office Hours</p>
-              <p>Mon - Fri: 9:00 AM - 5:00 PM</p>
+            <div className="bg-green-700 p-4 rounded-lg sm:col-span-2 lg:col-span-1">
+              <h4 className="font-bold text-base mb-2">Developed By</h4>
+              <p className="text-sm">M Aditya</p>
+              <p className="text-sm">V Akash</p>
+              <p className="text-sm">K GaneshWar</p>
+              <p className="text-xs mt-1">Department of Artificial Intelligence <br /> & <br /> Data Science</p>
             </div>
           </div>
           <p className="text-sm opacity-70">
-            © {new Date().getFullYear()} Mahendra Engineering College. All rights reserved.
+            © {new Date().getFullYear()} Mahendra Engineering College. <br /> All rights reserved.
           </p>
           <p className="text-xs opacity-50 mt-2">
-            For technical support, contact administrator
+            For technical support contact us
           </p>
         </div>
       </footer>

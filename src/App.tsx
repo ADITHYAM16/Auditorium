@@ -8,6 +8,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import DatabaseSetup from "@/components/DatabaseSetup";
 import Index from "./pages/Index";
+import ViewBookedDetails from "./pages/ViewBookedDetails";
 import CancelBooking from "./pages/CancelBooking";
 import NotFound from "./pages/NotFound";
 
@@ -43,6 +44,11 @@ const App = () => {
               <Route path="/" element={
                 <ProtectedRoute>
                   <Index onShowDatabaseSetup={() => setShowDatabaseSetup(true)} />
+                </ProtectedRoute>
+              } />
+              <Route path="/view-bookings" element={
+                <ProtectedRoute>
+                  <ViewBookedDetails onBack={() => window.history.back()} />
                 </ProtectedRoute>
               } />
               <Route path="/cancel-booking/:bookingId" element={
