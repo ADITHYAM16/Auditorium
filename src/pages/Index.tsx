@@ -65,7 +65,7 @@ const Index = ({ onShowDatabaseSetup }: IndexProps = {}) => {
 
   const downloadAllBookings = async () => {
     try {
-      const result = await BookingService.getAllBookings();
+      const result = await BookingService.getAllBookingsCombined();
 
       if (!result.success || !result.data || result.data.length === 0) {
         toast({

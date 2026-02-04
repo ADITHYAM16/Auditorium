@@ -23,7 +23,7 @@ const ViewBookedDetails = ({ onBack }: ViewBookedDetailsProps) => {
 
   const fetchBookings = async () => {
     setLoading(true)
-    const result = await BookingService.getAllBookings()
+    const result = await BookingService.getAllBookingsCombined()
 
     if (result.success && result.data) {
       setBookings(result.data)

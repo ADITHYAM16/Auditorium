@@ -1,4 +1,4 @@
-import { supabase, BookingRecord } from '@/lib/supabase'
+import { supabase, BookingRecord, MGAuditoriumBookingRecord } from '@/lib/supabase'
 import { BookingData } from '@/components/BookingForm'
 
 export class BookingService {
@@ -96,7 +96,7 @@ export class BookingService {
   static async isSlotAvailable(date: string, slot: string, arangamName?: string): Promise<{ available: boolean; error?: string }> {
     try {
       const result = await this.getBookingsByDateAndSlot(date, slot, arangamName)
-      
+
       if (!result.success) {
         // If there's an error but it's due to missing table, assume available
         if (result.error?.includes('relation') || result.error?.includes('does not exist')) {
@@ -116,10 +116,10 @@ export class BookingService {
         // If booking full-day, check if forenoon or afternoon are booked
         const forenoonResult = await this.getBookingsByDateAndSlot(date, 'forenoon', arangamName)
         const afternoonResult = await this.getBookingsByDateAndSlot(date, 'afternoon', arangamName)
-        
+
         const forenoonBooked = forenoonResult.success && (forenoonResult.data?.length || 0) > 0
         const afternoonBooked = afternoonResult.success && (afternoonResult.data?.length || 0) > 0
-        
+
         if (forenoonBooked || afternoonBooked) {
           return { available: false }
         }
@@ -127,7 +127,7 @@ export class BookingService {
         // If booking forenoon/afternoon, check if full-day is booked
         const fullDayResult = await this.getBookingsByDateAndSlot(date, 'full-day', arangamName)
         const fullDayBooked = fullDayResult.success && (fullDayResult.data?.length || 0) > 0
-        
+
         if (fullDayBooked) {
           return { available: false }
         }
@@ -176,16 +176,16 @@ export class BookingService {
       }
 
       // Update with cancelled status and append reason to remarks
-      const updatedRemarks = booking.remarks 
-        ? `${booking.remarks} | CANCELLED: ${reason}` 
+      const updatedRemarks = booking.remarks
+        ? `${booking.remarks} | CANCELLED: ${reason}`
         : `CANCELLED: ${reason}`
 
       const { error } = await supabase
         .from('bookings')
-        .update({ 
-          status: 'cancelled', 
+        .update({
+          status: 'cancelled',
           remarks: updatedRemarks,
-          updated_at: new Date().toISOString() 
+          updated_at: new Date().toISOString()
         })
         .eq('id', id)
 
@@ -236,6 +236,168 @@ export class BookingService {
       }
 
       return { success: true, data: data || [] }
+    } catch (error) {
+      console.error('Unexpected error:', error)
+      return { success: false, error: 'An unexpected error occurred' }
+    }
+  }
+
+  // ==================== MG AUDITORIUM SPECIFIC METHODS ====================
+
+  // Create a new MG Auditorium booking
+  static async createMGAuditoriumBooking(bookingData: BookingData): Promise<{ success: boolean; data?: MGAuditoriumBookingRecord; error?: string }> {
+    try {
+      const bookingRecord = {
+        event_name: bookingData.eventName,
+        event_type: bookingData.eventType,
+        department: bookingData.department,
+        year: bookingData.year,
+        coordinator_name: bookingData.coordinatorName,
+        coordinator_email: bookingData.coordinatorEmail,
+        contact_number: bookingData.contactNumber,
+        remarks: bookingData.remarks || '',
+        booking_date: bookingData.date.toISOString().split('T')[0],
+        slot_type: bookingData.slotType,
+        status: 'approved'
+      }
+
+      const { data, error } = await supabase
+        .from('mg_auditorium_bookings')
+        .insert([bookingRecord])
+        .select()
+        .single()
+
+      if (error) {
+        console.error('MG Auditorium booking creation error:', error)
+        return { success: false, error: error.message }
+      }
+
+      return { success: true, data }
+    } catch (error) {
+      console.error('Unexpected error:', error)
+      return { success: false, error: 'An unexpected error occurred' }
+    }
+  }
+
+  // Get all MG Auditorium bookings
+  static async getAllMGAuditoriumBookings(): Promise<{ success: boolean; data?: MGAuditoriumBookingRecord[]; error?: string }> {
+    try {
+      const { data, error } = await supabase
+        .from('mg_auditorium_bookings')
+        .select('*')
+        .order('created_at', { ascending: false })
+
+      if (error) {
+        if (error.code === 'PGRST116' || error.message.includes('relation') || error.message.includes('does not exist')) {
+          console.log('MG Auditorium table not found, returning empty results')
+          return { success: true, data: [] }
+        }
+        console.error('Fetch MG Auditorium bookings error:', error)
+        return { success: false, error: error.message }
+      }
+
+      return { success: true, data: data || [] }
+    } catch (error) {
+      console.error('Unexpected error:', error)
+      return { success: true, data: [] }
+    }
+  }
+
+  // Get MG Auditorium bookings by date and slot
+  static async getMGBookingsByDateAndSlot(date: string, slot: string): Promise<{ success: boolean; data?: MGAuditoriumBookingRecord[]; error?: string }> {
+    try {
+      const { data, error } = await supabase
+        .from('mg_auditorium_bookings')
+        .select('*')
+        .eq('booking_date', date)
+        .eq('slot_type', slot)
+        .in('status', ['pending', 'approved'])
+
+      if (error) {
+        if (error.code === 'PGRST116' || error.message.includes('relation') || error.message.includes('does not exist')) {
+          return { success: true, data: [] }
+        }
+        return { success: false, error: error.message }
+      }
+
+      return { success: true, data: data || [] }
+    } catch (error) {
+      return { success: true, data: [] }
+    }
+  }
+
+  // Check if MG Auditorium slot is available
+  static async isMGSlotAvailable(date: string, slot: string): Promise<{ available: boolean; error?: string }> {
+    try {
+      const result = await this.getMGBookingsByDateAndSlot(date, slot)
+
+      if (!result.success) {
+        if (result.error?.includes('relation') || result.error?.includes('does not exist')) {
+          return { available: true }
+        }
+        return { available: false, error: result.error }
+      }
+
+      const directConflict = (result.data?.length || 0) > 0
+      if (directConflict) {
+        return { available: false }
+      }
+
+      // Check for full-day conflicts
+      if (slot === 'full-day') {
+        const forenoonResult = await this.getMGBookingsByDateAndSlot(date, 'forenoon')
+        const afternoonResult = await this.getMGBookingsByDateAndSlot(date, 'afternoon')
+
+        const forenoonBooked = forenoonResult.success && (forenoonResult.data?.length || 0) > 0
+        const afternoonBooked = afternoonResult.success && (afternoonResult.data?.length || 0) > 0
+
+        if (forenoonBooked || afternoonBooked) {
+          return { available: false }
+        }
+      } else if (slot === 'forenoon' || slot === 'afternoon') {
+        const fullDayResult = await this.getMGBookingsByDateAndSlot(date, 'full-day')
+        const fullDayBooked = fullDayResult.success && (fullDayResult.data?.length || 0) > 0
+
+        if (fullDayBooked) {
+          return { available: false }
+        }
+      }
+
+      return { available: true }
+    } catch (error) {
+      console.error('Unexpected error:', error)
+      return { available: true }
+    }
+  }
+
+  // Get all bookings combined (both regular and MG Auditorium) for download feature
+  static async getAllBookingsCombined(): Promise<{ success: boolean; data?: BookingRecord[]; error?: string }> {
+    try {
+      // Fetch regular bookings
+      const regularResult = await this.getAllBookings()
+      const regularBookings = regularResult.data || []
+
+      // Fetch MG Auditorium bookings
+      const mgResult = await this.getAllMGAuditoriumBookings()
+      const mgBookings = mgResult.data || []
+
+      // Convert MG bookings to BookingRecord format with arangam_name = 'MG Auditorium'
+      const mgBookingsWithArangam: BookingRecord[] = mgBookings.map(booking => ({
+        ...booking,
+        arangam_name: 'MG Auditorium'
+      }))
+
+      // Combine both arrays
+      const combinedBookings = [...regularBookings, ...mgBookingsWithArangam]
+
+      // Sort by created_at descending
+      combinedBookings.sort((a, b) => {
+        const dateA = new Date(a.created_at || 0).getTime()
+        const dateB = new Date(b.created_at || 0).getTime()
+        return dateB - dateA
+      })
+
+      return { success: true, data: combinedBookings }
     } catch (error) {
       console.error('Unexpected error:', error)
       return { success: false, error: 'An unexpected error occurred' }

@@ -134,7 +134,9 @@ const BookingWorkflowDialog = ({
             const bookedSlotsData: { date: string; slot: string; arangam?: string }[] = [];
 
             for (const slot of slots) {
-                const result = await BookingService.getBookingsByDateAndSlot(dateStr, slot, arangamName || undefined);
+                const result = isMGAuditorium
+                    ? await BookingService.getMGBookingsByDateAndSlot(dateStr, slot)
+                    : await BookingService.getBookingsByDateAndSlot(dateStr, slot, arangamName || undefined);
                 if (result.success && result.data && result.data.length > 0) {
                     bookedSlotsData.push({ date: dateStr, slot, arangam: arangamName || undefined });
                 }
@@ -239,8 +241,8 @@ const BookingWorkflowDialog = ({
                 return !!selectedSlot;
             case 4: // Summary (always can proceed)
                 return true;
-            case 5: // Final form
-                return false; // Use submit button instead
+            case 5: // Final form (always can proceed)
+                return true;
             default:
                 return false;
         }
@@ -286,7 +288,9 @@ const BookingWorkflowDialog = ({
             const dateStr = selectedDate.toISOString().split('T')[0];
             const arangamName = getArangamName(arangam);
 
-            const availability = await BookingService.isSlotAvailable(dateStr, selectedSlot, arangamName || undefined);
+            const availability = isMGAuditorium
+                ? await BookingService.isMGSlotAvailable(dateStr, selectedSlot)
+                : await BookingService.isSlotAvailable(dateStr, selectedSlot, arangamName || undefined);
 
             if (!availability.available) {
                 toast({
@@ -305,7 +309,9 @@ const BookingWorkflowDialog = ({
             };
 
             // Save to Supabase
-            const result = await BookingService.createBooking(bookingData);
+            const result = isMGAuditorium
+                ? await BookingService.createMGAuditoriumBooking(bookingData)
+                : await BookingService.createBooking(bookingData);
 
             if (result.success) {
                 toast({
@@ -427,10 +433,10 @@ const BookingWorkflowDialog = ({
                                     onClick={() => !isBooked && setSelectedSlot(slot.id)}
                                     disabled={isBooked}
                                     className={`w-full p-4 rounded-lg border-2 transition-all duration-300 ${isBooked
-                                            ? "border-gray-300 bg-gray-100 cursor-not-allowed opacity-60"
-                                            : isSelected
-                                                ? "border-green-500 bg-green-50 shadow-lg"
-                                                : "border-border bg-card hover:border-green-300 hover:shadow-md"
+                                        ? "border-gray-300 bg-gray-100 cursor-not-allowed opacity-60"
+                                        : isSelected
+                                            ? "border-green-500 bg-green-50 shadow-lg"
+                                            : "border-border bg-card hover:border-green-300 hover:shadow-md"
                                         }`}
                                 >
                                     <div className="flex items-center gap-4">

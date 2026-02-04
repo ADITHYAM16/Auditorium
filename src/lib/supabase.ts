@@ -22,3 +22,20 @@ export interface BookingRecord {
   created_at?: string
   updated_at?: string
 }
+
+export interface MGAuditoriumBookingRecord {
+  id?: string
+  event_name: string
+  event_type: string
+  department: string
+  year: string
+  coordinator_name: string
+  coordinator_email: string
+  contact_number: string
+  remarks?: string
+  booking_date: string
+  slot_type: string
+  status: 'pending' | 'approved' | 'rejected' | 'cancelled'
+  created_at?: string
+  updated_at?: string
+}
