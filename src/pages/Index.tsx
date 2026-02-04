@@ -224,7 +224,7 @@ const Index = ({ onShowDatabaseSetup }: IndexProps = {}) => {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-sm md:text-base">
               <div className="bg-green-700 p-3 rounded-lg">
                 <p className="font-semibold mb-1">Phone</p>
-                <p>+91 12345 67890</p>
+                <p>+91 9865584709</p>
               </div>
               <div className="bg-green-700 p-3 rounded-lg">
                 <p className="font-semibold mb-1">Email</p>
@@ -355,7 +355,7 @@ const Index = ({ onShowDatabaseSetup }: IndexProps = {}) => {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 text-sm md:text-base mb-6">
             <div className="bg-green-700 p-4 rounded-lg">
               <p className="font-semibold mb-2">Phone</p>
-              <p>+91 12345 67890</p>
+              <p>+91  9865584709</p>
             </div>
             <div className="bg-green-700 p-4 rounded-lg">
               <p className="font-semibold mb-2">Email</p>
