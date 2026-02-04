@@ -179,7 +179,11 @@ const Index = ({ onShowDatabaseSetup }: IndexProps = {}) => {
         <div className="py-8 px-4">
           <div className="max-w-7xl mx-auto">
             <button
-              onClick={() => setShowMGBookingPage(false)}
+              onClick={() => {
+                setShowMGBookingPage(false);
+                setSelectedDate(null);
+                setSelectedSlot(null);
+              }}
               className="mb-6 px-4 py-2 bg-gray-500 hover:bg-gray-600 text-white rounded"
             >
               ← Back to Home
@@ -253,8 +257,8 @@ const Index = ({ onShowDatabaseSetup }: IndexProps = {}) => {
             </h2>
             <div className="w-24 h-1 bg-accent mx-auto rounded-full mb-4" />
             <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-              Reserve the college arangam for your department events, seminars,
-              workshops, and cultural programs with just a few clicks.
+              Reserve the college arangam for your Department events, Seminars,
+              Workshops, and Cultural programs with just a few click.
             </p>
           </div>
 
@@ -355,11 +359,11 @@ const Index = ({ onShowDatabaseSetup }: IndexProps = {}) => {
             </div>
             <div className="bg-green-700 p-4 rounded-lg">
               <p className="font-semibold mb-2">Email</p>
-              <p className="break-all">arangam@mahendra.info</p>
+              <p className="break-all">mecarangambooking@gmail.com</p>
             </div>
             <div className="bg-green-700 p-4 rounded-lg sm:col-span-2 lg:col-span-1">
               <h4 className="font-bold text-base mb-2">Developed By</h4>
-              <p className="text-sm">M Aditya</p>
+              <p className="text-sm">M Adithya</p>
               <p className="text-sm">V Akash</p>
               <p className="text-sm">K GaneshWar</p>
               <p className="text-xs mt-1">Department of Artificial Intelligence <br /> & <br /> Data Science</p>

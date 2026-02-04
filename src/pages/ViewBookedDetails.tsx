@@ -224,7 +224,7 @@ const ViewBookedDetails = ({ onBack }: ViewBookedDetailsProps) => {
                       </div>
                       <div className="flex items-center gap-2">
                         <BadgeComponent className={getStatusColor(booking.status || 'pending')}>
-                          {booking.status || 'pending'}
+                          {booking.status === 'approved' ? 'BOOKED' : (booking.status || 'pending')}
                         </BadgeComponent>
                         {(booking.status !== 'cancelled' && booking.status !== 'rejected') && (
                           <Button

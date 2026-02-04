@@ -67,7 +67,7 @@ const SlotSelector = ({
     if (!selectedDate) return;
 
     try {
-      const dateStr = selectedDate.toISOString().split('T')[0];
+      const dateStr = selectedDate.toLocaleDateString('en-CA');
       const arangamName = getArangamName(selectedArangam);
 
       // Only fetch if we have a valid date
@@ -104,7 +104,7 @@ const SlotSelector = ({
   const isSlotDirectlyBooked = (slotId: string) => {
     if (!selectedDate) return false;
 
-    const dateStr = selectedDate.toISOString().split('T')[0];
+    const dateStr = selectedDate.toLocaleDateString('en-CA');
 
     // Check legacy booked slots first
     const isLegacyBooked = bookedSlots.some(
@@ -132,7 +132,7 @@ const SlotSelector = ({
   const isSlotConflicted = (slotId: string) => {
     if (!selectedDate) return false;
 
-    const dateStr = selectedDate.toISOString().split('T')[0];
+    const dateStr = selectedDate.toLocaleDateString('en-CA');
     const arangamName = showArangam && selectedArangam ? getArangamName(selectedArangam) : null;
 
     if (slotId === 'full-day') {
@@ -232,11 +232,26 @@ const SlotSelector = ({
                 selected={selectedDate || undefined}
                 onSelect={onDateChange}
                 disabled={isDateDisabled}
-                className="rounded-lg border shadow-card pointer-events-auto"
+                className="rounded-lg border shadow-card pointer-events-auto w-fit"
                 classNames={{
-                  day_selected: "bg-green-500 text-white hover:bg-green-600 hover:text-white focus:bg-green-600 focus:text-white !rounded-full w-9 h-9 flex items-center justify-center",
-                  day_today: "bg-accent/20 text-accent-foreground font-bold !rounded-full",
-                  day: "hover:bg-secondary transition-colors duration-200 !rounded-full w-9 h-9 flex items-center justify-center",
+                  months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
+                  month: "space-y-4",
+                  caption: "flex justify-center pt-1 relative items-center text-sm font-medium",
+                  caption_label: "text-sm font-medium",
+                  nav: "space-x-1 flex items-center",
+                  nav_button: "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100",
+                  nav_button_previous: "absolute left-1",
+                  nav_button_next: "absolute right-1",
+                  table: "w-fit border-collapse",
+                  head_row: "flex",
+                  head_cell: "text-muted-foreground rounded-md w-8 font-normal text-[0.8rem] uppercase",
+                  row: "flex mt-1",
+                  cell: "text-center text-sm p-0 relative",
+                  day: "h-8 w-8 p-0 font-normal hover:bg-accent hover:text-accent-foreground rounded-md transition-colors",
+                  day_selected: "bg-blue-600 text-white hover:bg-blue-700 hover:text-white focus:bg-blue-600 focus:text-white rounded-md",
+                  day_today: "bg-accent text-accent-foreground font-semibold",
+                  day_outside: "text-muted-foreground opacity-50",
+                  day_disabled: "text-muted-foreground opacity-50",
                 }}
               />
             </div>

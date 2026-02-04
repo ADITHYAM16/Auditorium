@@ -14,7 +14,7 @@ export class BookingService {
         coordinator_email: bookingData.coordinatorEmail,
         contact_number: bookingData.contactNumber,
         remarks: bookingData.remarks || '',
-        booking_date: bookingData.date.toISOString().split('T')[0],
+        booking_date: bookingData.date.toLocaleDateString('en-CA'),
         slot_type: bookingData.slotType,
         arangam_name: bookingData.arangamName || null,
         status: 'approved'
@@ -160,28 +160,58 @@ export class BookingService {
     }
   }
 
-  // Cancel booking with reason
+  // Cancel booking with reason (works for both regular and MG Auditorium bookings)
   static async cancelBooking(id: string, reason: string): Promise<{ success: boolean; error?: string }> {
     try {
-      // First get the current booking to preserve existing remarks
-      const { data: booking, error: fetchError } = await supabase
+      // First try regular bookings table
+      const { data: regularBooking, error: regularFetchError } = await supabase
         .from('bookings')
         .select('remarks')
         .eq('id', id)
         .single()
 
-      if (fetchError) {
-        console.error('Fetch booking error:', fetchError)
-        return { success: false, error: fetchError.message }
+      if (!regularFetchError) {
+        // Found in regular bookings, proceed with cancellation
+        const updatedRemarks = regularBooking.remarks
+          ? `${regularBooking.remarks} | CANCELLED: ${reason}`
+          : `CANCELLED: ${reason}`
+
+        const { error } = await supabase
+          .from('bookings')
+          .update({
+            status: 'cancelled',
+            remarks: updatedRemarks,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', id)
+
+        if (error) {
+          console.error('Cancel booking error:', error)
+          return { success: false, error: error.message }
+        }
+
+        return { success: true }
       }
 
-      // Update with cancelled status and append reason to remarks
-      const updatedRemarks = booking.remarks
-        ? `${booking.remarks} | CANCELLED: ${reason}`
+      // If not found in regular bookings, try MG auditorium bookings
+      const { data: mgBooking, error: mgFetchError } = await supabase
+        .from('mg_auditorium_bookings')
+        .select('remarks')
+        .eq('id', id)
+        .single()
+
+      if (mgFetchError) {
+        console.error('Fetch booking error:', mgFetchError)
+        return { success: false, error: mgFetchError.message }
+      }
+
+      // Update MG auditorium booking
+      const updatedRemarks = mgBooking.remarks
+        ? `${mgBooking.remarks} | CANCELLED: ${reason}`
         : `CANCELLED: ${reason}`
 
       const { error } = await supabase
-        .from('bookings')
+        .from('mg_auditorium_bookings')
         .update({
           status: 'cancelled',
           remarks: updatedRemarks,
@@ -190,7 +220,7 @@ export class BookingService {
         .eq('id', id)
 
       if (error) {
-        console.error('Cancel booking error:', error)
+        console.error('Cancel MG booking error:', error)
         return { success: false, error: error.message }
       }
 
@@ -256,7 +286,7 @@ export class BookingService {
         coordinator_email: bookingData.coordinatorEmail,
         contact_number: bookingData.contactNumber,
         remarks: bookingData.remarks || '',
-        booking_date: bookingData.date.toISOString().split('T')[0],
+        booking_date: bookingData.date.toLocaleDateString('en-CA'),
         slot_type: bookingData.slotType,
         status: 'approved'
       }

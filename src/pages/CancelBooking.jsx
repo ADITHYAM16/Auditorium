@@ -21,13 +21,27 @@ function CancelBooking() {
 
   const fetchBooking = async () => {
     try {
-      const { data, error } = await supabase
+      // First try regular bookings table
+      let { data, error } = await supabase
         .from('bookings')
         .select('*')
         .eq('id', bookingId)
         .single();
 
-      if (error) throw error;
+      // If not found in regular bookings, try MG auditorium bookings
+      if (error && error.code === 'PGRST116') {
+        const mgResult = await supabase
+          .from('mg_auditorium_bookings')
+          .select('*')
+          .eq('id', bookingId)
+          .single();
+        
+        if (mgResult.error) throw mgResult.error;
+        data = { ...mgResult.data, arangam_name: 'MG Auditorium' };
+      } else if (error) {
+        throw error;
+      }
+
       setBooking(data);
     } catch (error) {
       console.error('Error fetching booking:', error);
