@@ -31,6 +31,12 @@ const departments = [
   "Physics",
   "MBA",
   "MCA",
+  "School",
+  "College",
+  "Other",
+  "Convocation",
+  "Sports",
+  "Alumini Meet",
 ];
 
 const eventNames = [
@@ -132,7 +138,7 @@ const BookingForm = ({ selectedDate, selectedSlot, selectedArangam, onSubmit }: 
   const handleEventTypeChange = (value: string) => {
     setFormData({ ...formData, eventType: value });
     if (value.trim()) {
-      const filtered = eventTypes.filter(type => 
+      const filtered = eventTypes.filter(type =>
         type.toLowerCase().includes(value.toLowerCase())
       );
       setFilteredEventTypes(filtered);
@@ -145,7 +151,7 @@ const BookingForm = ({ selectedDate, selectedSlot, selectedArangam, onSubmit }: 
   const handleDepartmentChange = (value: string) => {
     setFormData({ ...formData, department: value });
     if (value.trim()) {
-      const filtered = departments.filter(dept => 
+      const filtered = departments.filter(dept =>
         dept.toLowerCase().includes(value.toLowerCase())
       );
       setFilteredDepartments(filtered);
@@ -193,9 +199,9 @@ const BookingForm = ({ selectedDate, selectedSlot, selectedArangam, onSubmit }: 
       // Check slot availability before booking
       const dateStr = selectedDate.toISOString().split('T')[0];
       const arangamName = getArangamName(selectedArangam);
-      
+
       const availability = await BookingService.isSlotAvailable(dateStr, selectedSlot, arangamName || undefined);
-      
+
       if (!availability.available) {
         toast({
           title: "Slot Not Available",
@@ -214,7 +220,7 @@ const BookingForm = ({ selectedDate, selectedSlot, selectedArangam, onSubmit }: 
 
       // Save to Supabase
       const result = await BookingService.createBooking(bookingData);
-      
+
       if (result.success) {
         onSubmit(bookingData);
         toast({
@@ -315,7 +321,7 @@ const BookingForm = ({ selectedDate, selectedSlot, selectedArangam, onSubmit }: 
               onChange={(e) => handleEventTypeChange(e.target.value)}
               onFocus={() => {
                 if (formData.eventType.trim()) {
-                  const filtered = eventTypes.filter(type => 
+                  const filtered = eventTypes.filter(type =>
                     type.toLowerCase().includes(formData.eventType.toLowerCase())
                   );
                   setFilteredEventTypes(filtered);
@@ -348,7 +354,7 @@ const BookingForm = ({ selectedDate, selectedSlot, selectedArangam, onSubmit }: 
         <div className="space-y-2">
           <Label htmlFor="department" className="flex items-center gap-2">
             <Building className="w-4 h-4 text-primary" />
-            Department *
+            Department/College/School *
           </Label>
           <div className="relative">
             <Input
@@ -358,7 +364,7 @@ const BookingForm = ({ selectedDate, selectedSlot, selectedArangam, onSubmit }: 
               onChange={(e) => handleDepartmentChange(e.target.value)}
               onFocus={() => {
                 if (formData.department.trim()) {
-                  const filtered = departments.filter(dept => 
+                  const filtered = departments.filter(dept =>
                     dept.toLowerCase().includes(formData.department.toLowerCase())
                   );
                   setFilteredDepartments(filtered);

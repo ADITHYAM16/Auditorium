@@ -42,6 +42,13 @@ const departments = [
     "Physics",
     "MBA",
     "MCA",
+    "School",
+    "College",
+    "Other",
+    "Alumini Meet",
+    "Sports",
+    "Convocation",
+
 ];
 
 const eventTypes = [
@@ -324,7 +331,7 @@ const BookingWorkflowDialog = ({
                 resetDialog();
                 onOpenChange(false);
                 onBookingComplete?.(bookingData);
-                
+
                 // Refresh the page after successful booking
                 setTimeout(() => {
                     window.location.reload();
@@ -592,7 +599,7 @@ const BookingWorkflowDialog = ({
                             <div className="space-y-2">
                                 <Label htmlFor="department" className="flex items-center gap-2">
                                     <Building2 className="w-4 h-4 text-primary" />
-                                    Department *
+                                    Department/College/School *
                                 </Label>
                                 <div className="relative">
                                     <Input
