@@ -232,6 +232,10 @@ const BookingForm = ({ selectedDate, selectedSlot, selectedArangam, onSubmit }: 
           contactNumber: "",
           remarks: "",
         });
+        // Refresh the page after successful booking
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
       } else {
         toast({
           title: "Booking Failed",

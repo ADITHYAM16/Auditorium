@@ -324,6 +324,11 @@ const BookingWorkflowDialog = ({
                 resetDialog();
                 onOpenChange(false);
                 onBookingComplete?.(bookingData);
+                
+                // Refresh the page after successful booking
+                setTimeout(() => {
+                    window.location.reload();
+                }, 2000);
             } else {
                 toast({
                     title: "Booking Failed",
